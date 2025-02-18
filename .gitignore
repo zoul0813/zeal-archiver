@@ -1,0 +1,7 @@
+bin/
+*.zip
+release/
+tmp/
+assets/*.zt[spm]
+*.tiled-session
+*.zar
