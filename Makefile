@@ -16,6 +16,9 @@
 # Specify the name of the output binary.
 BIN=zar.bin
 
+CC=sdcc
+AR=sdar
+
 # Specify the C compiler to use.
 # ZOS_CC=sdcc
 
@@ -23,7 +26,8 @@ BIN=zar.bin
 # ZOS_LD=sdldz80
 
 # Specify additional flags to pass to the compiler.
-# ZOS_CFLAGS= --nostdlib
+ZOS_CFLAGS= --nostdlib --no-xinit-opt -Iinclude/
+ZOS_LDFLAGS= -k lib -l zar
 
 # Specify additional flags to pass to the linker.
 # ZOS_LDFLAGS=
@@ -36,4 +40,11 @@ ifndef ZOS_PATH
     $(error "Failure: ZOS_PATH variable not found. It must point to Zeal 8-bit OS path.")
 endif
 
+all:: zar.lib
+
 include $(ZOS_PATH)/kernel_headers/sdcc/base_sdcc.mk
+
+zar.lib:
+	mkdir -p lib/
+	$(CC) $(CFLAGS) -o lib/ src/zar.c
+	$(AR) -rc lib/zar.lib lib/zar.rel

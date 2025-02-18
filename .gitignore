@@ -5,3 +5,7 @@ tmp/
 assets/*.zt[spm]
 *.tiled-session
 *.zar
+*.lst
+*.rel
+*.sym
+lib/*.asm
