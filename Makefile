@@ -26,8 +26,8 @@ AR=sdar
 # ZOS_LD=sdldz80
 
 # Specify additional flags to pass to the compiler.
-ZOS_CFLAGS= --nostdlib --no-xinit-opt -Iinclude/
-ZOS_LDFLAGS= -k lib -l zar
+ZOS_CFLAGS  = --nostdlib --no-xinit-opt -Iinclude/
+ZOS_LDFLAGS = -k lib -l zar
 
 # Specify additional flags to pass to the linker.
 # ZOS_LDFLAGS=

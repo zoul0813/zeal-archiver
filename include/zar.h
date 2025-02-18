@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <zos_vfs.h>
 #include <zos_errors.h>
 
 #ifndef ZAR_H
