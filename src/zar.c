@@ -47,6 +47,7 @@ zos_err_t zar_file_load(const char *path, zar_file_t *zar_file) {
     for(i = 0; i < zar_file->file_count; i++) {
         size = 2;
         zar_file_entry_t *entry = &ENTRIES[i];
+        entry->cursor = 0;
         err = read(fd, &entry->position, &size);
         HANDLE_ERROR(err, size, 2);
 
@@ -75,7 +76,6 @@ zos_err_t zar_file_load(const char *path, zar_file_t *zar_file) {
 zos_err_t zar_file_close(zar_file_t *zar_file) {
     zos_err_t err = ERR_INVALID_PARAMETER;
     if(zar_file != NULL) {
-        printf("close(%d)\n", zar_file->fd);
         err = close(zar_file->fd);
     }
     return err;
@@ -98,21 +98,68 @@ zos_err_t zar_file_list(zar_file_t *zar_file) {
     return err;
 }
 
-zos_err_t zar_file_get(zar_file_t *zar_file, zar_file_entry_t *entry) {
+zos_err_t zar_file_read(zar_file_t *zar_file, zar_file_entry_t *entry, uint8_t *buffer, uint16_t *size) {
     zos_err_t err = ERR_SUCCESS;
+
+    if(entry->cursor == 0) {
+        entry->cursor = entry->position;
+        printf("setting cursor: %d [%d, %d]\n", entry->cursor, entry->position, entry->size);
+    }
+
+    // identify the largest cursor position
+    uint16_t max_cursor = entry->position + entry->size;
+    uint16_t r_size = *size;
+
+    // don't read past the file length
+    if(r_size > entry->size) {
+        printf("%d exceeds %d, new size(a): ", r_size, entry->size);
+        r_size = entry->size;
+        printf("%d\n", r_size);
+    }
+
+    // prevent reading past the file
+    if(entry->cursor >= max_cursor) {
+        printf("read past file\n");
+        *size = 0;
+        return ERR_NO_MORE_ENTRIES; // EOF
+    }
+
+    // prevent reading past the file
+    if((entry->cursor + r_size - 1) >= max_cursor) {
+        printf("%d exceeds %d, new size(b): ", r_size, entry->size);
+        r_size = max_cursor - entry->cursor;
+        printf("%d\n", r_size);
+    }
+
+    *size = r_size;
+
+    // seek to the position within the zar_file
+    printf("seeking: %d, ", entry->cursor);
+    err = seek(zar_file->fd, &entry->cursor, SEEK_SET);
+    if(err != ERR_SUCCESS) return err;
+    printf("seeked: %d\n", entry->cursor);
+
+    // read size bytes into the buffer
+    read(zar_file->fd, buffer, size);
+    printf("read: %d\n", size);
+    if(err != ERR_SUCCESS) return err;
+
+    // update the cursor to point to the new read position
+    entry->cursor += *size;
+    printf("cursor: %d\n", entry->cursor);
     return err;
 }
 
-zos_err_t zar_file_get_from_index(zar_file_t *zar_file, uint8_t index) {
-    if(index == ZAR_INVALID_NAME) return ERR_INVALID_NAME;
-    if(index >= zar_file->file_count) return ERR_INVALID_OFFSET;
+zar_file_entry_t* zar_file_get_from_index(zar_file_t *zar_file, uint8_t index) {
+    if(index == ZAR_INVALID_NAME) return NULL;
+    if(index >= zar_file->file_count) return NULL;
     zar_file_entry_t *entry = zar_file->entries[index];
-    return zar_file_get(zar_file, entry);
+    return entry;
 }
 
-zos_err_t zar_file_get_from_name(zar_file_t *zar_file, const char *name) {
+zar_file_entry_t* zar_file_get_from_name(zar_file_t *zar_file, const char *name) {
     uint8_t index = zar_file_get_index_of(zar_file, name);
-    if(index == ZAR_INVALID_NAME) return ERR_INVALID_NAME;
+    if(index == ZAR_INVALID_NAME) return NULL;
     return zar_file_get_from_index(zar_file, index);
 }
 

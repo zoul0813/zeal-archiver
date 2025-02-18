@@ -12,6 +12,7 @@
 typedef struct {
     uint16_t position;
     uint16_t size;
+    uint16_t cursor;
     char filename[ZAR_MAX_FILENAME + 2];
 } zar_file_entry_t;
 
@@ -32,11 +33,11 @@ zos_err_t zar_file_close(zar_file_t *zar_file);
 /** List contents of a zar_file_t */
 zos_err_t zar_file_list(zar_file_t *zar_file);
 /** Get contents of file from entry */
-zos_err_t zar_file_get(zar_file_t *zar_file, zar_file_entry_t *entry);
+zos_err_t zar_file_read(zar_file_t *zar_file, zar_file_entry_t *entry, uint8_t *buffer, uint16_t *size);
 /** Get contents of file at index */
-zos_err_t zar_file_get_from_index(zar_file_t *zar_file, uint8_t index);
+zar_file_entry_t* zar_file_get_from_index(zar_file_t *zar_file, uint8_t index);
 /** Get contents of file named by path */
-zos_err_t zar_file_get_from_name(zar_file_t *zar_file, const char *name);
+zar_file_entry_t* zar_file_get_from_name(zar_file_t *zar_file, const char *name);
 /** Get index of file named by path */
 uint8_t   zar_file_get_index_of(zar_file_t *zar_file, const char *name);
 

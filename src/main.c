@@ -26,6 +26,7 @@ typedef struct {
 
 options_t options;
 char CWD[PATH_MAX];
+uint8_t buffer[1024];
 
 void set_color(uint8_t fg) {
     ioctl(DEV_STDOUT, CMD_SET_COLORS, TEXT_COLOR(fg, TEXT_COLOR_BLACK));
@@ -173,23 +174,42 @@ int main(int argc, char** argv)
         chdir(options.output);
 
         uint8_t i;
-        for(i = 0; i < zar_file.file_count; i++) {
+        // for(i = 0; i < zar_file.file_count; i++) {
+        for(i = 0; i < 4; i++) {
             zar_file_entry_t *entry = zar_file.entries[i];
-            zar_file_get(&zar_file, entry);
+
+            // open output file for writing
             zos_dev_t fd = open(entry->filename, O_WRONLY | O_CREAT);
             if(fd < 0) {
                 printf("Failed to open %s%s, %d [%02x]\n", options.output, entry->filename, -fd, -fd);
                 continue; // try the next file?
             }
             printf("extracting: %s%s\n", options.output, entry->filename);
+
+            // read 1k at a time
+            uint16_t size = sizeof(buffer);
+            do {
+                err = zar_file_read(&zar_file, entry, buffer, &size);
+                printf(" -> read: %d, ", size);
+                if(err != ERR_SUCCESS) {
+                    printf("Failed to read %d bytes from %s for %s\n", size, options.input, entry->filename);
+                    close(fd);
+                    goto file_loop_done;
+                }
+                err = write(fd, &buffer, &size);
+                printf(", wrote: %d, cursor: %d\n", size, entry->cursor);
+                if(err != ERR_SUCCESS) {
+                    printf("Failed to write %d bytes to %s%s\n", size, options.output, entry->filename);
+                    close(fd);
+                    goto file_loop_done;
+                }
+            } while(size > 0);
             close(fd);
         }
+file_loop_done:
         chdir(CWD);
     }
 
-    printf("Closing %s\n", options.input);
     err = zar_file_close(&zar_file);
-
-    printf("Exitting %d [%02x]\n", err, err);
     return err;
 }
