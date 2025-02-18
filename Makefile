@@ -40,11 +40,14 @@ ifndef ZOS_PATH
     $(error "Failure: ZOS_PATH variable not found. It must point to Zeal 8-bit OS path.")
 endif
 
-all:: zar.lib
+all:: clean.lib zar.lib
 
 include $(ZOS_PATH)/kernel_headers/sdcc/base_sdcc.mk
 
+clean.lib:
+	rm -rf lib
+
 zar.lib:
 	mkdir -p lib/
-	$(CC) $(CFLAGS) -o lib/ src/zar.c
+	$(CC) $(CFLAGS) -o lib/ libsrc/zar.c
 	$(AR) -rc lib/zar.lib lib/zar.rel
