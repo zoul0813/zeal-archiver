@@ -23,7 +23,7 @@ BIN=zar.bin
 # ZOS_LD=sdldz80
 
 # Specify additional flags to pass to the compiler.
-# ZOS_CFLAGS=
+# ZOS_CFLAGS= --nostdlib
 
 # Specify additional flags to pass to the linker.
 # ZOS_LDFLAGS=
