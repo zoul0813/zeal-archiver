@@ -102,7 +102,7 @@ void parse_arguments(int argc, char** argv)
         if (tokens >= (2 + index)) {
             l = strlen(args[1 + index]);
             memcpy(options.output, args[1 + index], l);
-            if(options.output[l-1] != '/') {
+            if (options.output[l - 1] != '/') {
                 options.output[l] = '/';
             }
         }
@@ -120,13 +120,110 @@ zos_err_t list_files(zar_file_t* zar_file)
     printf("------------  ------ -----\n");
 
     uint8_t i;
+    zar_file_entry_t entry;
+    zar_filename filename;
     for (i = 0; i < zar_file->file_count; i++) {
-        zar_file_entry_t* entry = zar_file->entries[i];
-        if (entry != NULL) {
-            printf("%-12s  %5dB %5d\n", entry->filename, entry->size, entry->position);
+        err = zar_file_entry_from_index(zar_file, i, &entry);
+        if (err != ERR_SUCCESS) {
+            printf("\nFailed to get entry at index %d, %d [%02x]\n", i, err, err);
+            return err;
+        }
+        err = zar_file_entry_name_of_index(zar_file, i, filename);
+        if(err != ERR_SUCCESS) {
+            printf("\nFailed to get entry name at index %d, %d [%02x]\n", i, err, err);
+            exit(err);
+        }
+
+        printf("%-12s  %5dB %5d\n", filename, entry.size, entry.position);
+    }
+
+    return err;
+}
+
+zos_err_t extract_files(zar_file_t* zar_file)
+{
+    zos_err_t err;
+    // dirty trick for determining if the dir exists or not
+    zos_dev_t output_dir;
+    output_dir = opendir(options.output);
+    if (output_dir >= 0)
+        close(output_dir);
+
+    // if it exists, or the force flag is not present, error ...
+    if ((output_dir >= 0) && !(options.flags & F_FORCE)) {
+        printf("\nOutput exists, use `f` flag to force: %s\n", options.output);
+        exit(ERR_ALREADY_EXIST);
+    }
+
+    set_color(TEXT_COLOR_LIGHT_GRAY);
+    if (output_dir == -ERR_NO_SUCH_ENTRY) {
+        if (options.flags & F_VERBOSE) {
+            printf("Creating %s\n", options.output);
+        }
+        err = mkdir(options.output);
+        if (err != ERR_SUCCESS) {
+            printf("Failed to create %s, %d [%02x]\n", options.output, err, err);
+            exit(err);
+        }
+    } else {
+        if (options.flags & F_VERBOSE) {
+            printf("Overwriting %s\n", options.output);
         }
     }
 
+    // change into the output destination folder
+    curdir(CWD);
+    chdir(options.output);
+
+    uint8_t i;
+    zar_file_entry_t entry;
+    zar_filename filename;
+    for (i = 0; i < zar_file->file_count; i++) {
+        err = zar_file_entry_from_index(zar_file, i, &entry);
+        if (err != ERR_SUCCESS) {
+            printf("\nFailed to get entry at index %d, %d [%02x]\n", i, err, err);
+            exit(err);
+        }
+
+        err = zar_file_entry_name_of_index(zar_file, i, filename);
+        if(err != ERR_SUCCESS) {
+            printf("\nFailed to get entry name at index %d, %d [%02x]\n", i, err, err);
+            exit(err);
+        }
+
+        // open output file for writing
+        zos_dev_t fd = open(filename, O_WRONLY | O_CREAT);
+        if (fd < 0) {
+            printf("Failed to open %s%s, %d [%02x]\n", options.output, filename, -fd, -fd);
+            continue; // try the next file?
+        }
+        if (options.flags & F_VERBOSE) {
+            printf("extracting: %s%s\n", options.output, filename);
+        }
+
+        // read 1k at a time
+        uint16_t size = sizeof(buffer);
+        do {
+            err = zar_file_read(zar_file, &entry, buffer, &size);
+            if (size > 0) {
+                if (err != ERR_SUCCESS) {
+                    printf("Failed to read %d bytes from %s for %s\n", size, options.input, filename);
+                    err = close(fd);
+                    goto extract_files_done;
+                }
+                err = write(fd, &buffer, &size);
+                if (err != ERR_SUCCESS) {
+                    printf("Failed to write %d bytes to %s%s\n", size, options.output, filename);
+                    err = close(fd);
+                    goto extract_files_done;
+                }
+            }
+        } while (size > 0);
+        err = close(fd);
+        if(err != ERR_SUCCESS) return err;
+    }
+    err = chdir(CWD);
+extract_files_done:
     return err;
 }
 
@@ -173,7 +270,7 @@ int main(int argc, char** argv)
     zar_file_t zar_file;
     err = zar_file_open(options.input, &zar_file);
     if (err != ERR_SUCCESS) {
-        printf("\nFailed to open %s, %d [%02x]\n", options.input, err, err);
+        printf("\nFailed to open %s archive, %d [%02x]\n", options.input, err, err);
         exit(err);
     }
 
@@ -181,7 +278,6 @@ int main(int argc, char** argv)
         printf("\n");
         printf("Header:\n");
         set_color(TEXT_COLOR_LIGHT_GRAY);
-        printf("    Header: %03s\n", zar_file.header);
         printf("   Version: %d\n", zar_file.version);
         printf("File Count: %d\n\n", zar_file.file_count);
         set_color(TEXT_COLOR_WHITE);
@@ -196,74 +292,7 @@ int main(int argc, char** argv)
             printf("Extracting %s to %s\n", options.input, options.output);
         }
 
-        // dirty trick for determining if the dir exists or not
-        zos_dev_t output_dir;
-        output_dir = opendir(options.output);
-        if (output_dir >= 0)
-            close(output_dir);
-
-        // if it exists, or the force flag is not present, error ...
-        if ((output_dir >= 0) && !(options.flags & F_FORCE)) {
-            printf("\nOutput exists, use `f` flag to force: %s, %d [%02x]\n", options.output, err, err);
-            exit(err);
-        }
-
-        set_color(TEXT_COLOR_LIGHT_GRAY);
-        if (output_dir == -ERR_NO_SUCH_ENTRY) {
-            if (options.flags & F_VERBOSE) {
-                printf("Creating %s\n", options.output);
-            }
-            err = mkdir(options.output);
-            if (err != ERR_SUCCESS) {
-                printf("Failed to create %s, %d [%02x]\n", options.output, err, err);
-                exit(err);
-            }
-        } else {
-            if (options.flags & F_VERBOSE) {
-                printf("Overwriting %s\n", options.output);
-            }
-        }
-
-        // change into the output destination folder
-        curdir(CWD);
-        chdir(options.output);
-
-        uint8_t i;
-        for (i = 0; i < zar_file.file_count; i++) {
-            zar_file_entry_t* entry = zar_file.entries[i];
-
-            // open output file for writing
-            zos_dev_t fd = open(entry->filename, O_WRONLY | O_CREAT);
-            if (fd < 0) {
-                printf("Failed to open %s%s, %d [%02x]\n", options.output, entry->filename, -fd, -fd);
-                continue; // try the next file?
-            }
-            if (options.flags & F_VERBOSE) {
-                printf("extracting: %s%s\n", options.output, entry->filename);
-            }
-
-            // read 1k at a time
-            uint16_t size = sizeof(buffer);
-            do {
-                err = zar_file_read(&zar_file, entry, buffer, &size);
-                if (size > 0) {
-                    if (err != ERR_SUCCESS) {
-                        printf("Failed to read %d bytes from %s for %s\n", size, options.input, entry->filename);
-                        close(fd);
-                        goto file_loop_done;
-                    }
-                    err = write(fd, &buffer, &size);
-                    if (err != ERR_SUCCESS) {
-                        printf("Failed to write %d bytes to %s%s\n", size, options.output, entry->filename);
-                        close(fd);
-                        goto file_loop_done;
-                    }
-                }
-            } while (size > 0);
-            close(fd);
-        }
-file_loop_done:
-        chdir(CWD);
+        extract_files(&zar_file);
     }
 
     err = zar_file_close(&zar_file);

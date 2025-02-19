@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <zos_sys.h>
@@ -6,16 +7,24 @@
 
 #include "zar.h"
 
-#define HANDLE_ERROR(error, size, expect) \
-    do {                                  \
-        if (error != ERR_SUCCESS)         \
-            return error;                 \
-        if (size != expect)               \
-            return ERR_ENTRY_CORRUPTED;   \
+#define ZAR_FILE_HEADER_SIZE 5
+#define ZAR_ENTRY_SIZE       (sizeof(uint32_t) + ZAR_MAX_FILENAME)
+
+#define HANDLE_ERROR(error, size, expect)          \
+    do {                                           \
+        if (error != ERR_SUCCESS) {                \
+            printf("ERROR: line: %d\n", __LINE__); \
+            return error;                          \
+        }                                          \
+        if (size != expect) {                      \
+            printf("ERROR: line: %d\n", __LINE__); \
+            return ERR_ENTRY_CORRUPTED;            \
+        }                                          \
     } while (0);
 
-zar_file_entry_t ENTRIES[ZAR_MAX_ENTRIES];
+/** INTERNALS **/
 
+//
 uint8_t strcmp(const uint8_t* str1, const uint8_t* str2)
 {
     while (*str1 && (*str1 == *str2)) {
@@ -25,6 +34,50 @@ uint8_t strcmp(const uint8_t* str1, const uint8_t* str2)
     return *str1 - *str2; // Return difference of the first differing character
 }
 
+zos_err_t _seek_to_entry_index(zar_file_t* zar_file, uint8_t index)
+{
+    // seek to index
+    zos_err_t err;
+    uint32_t cursor = ZAR_FILE_HEADER_SIZE + (ZAR_ENTRY_SIZE * index);
+    uint32_t pos    = cursor;
+    err             = seek(zar_file->fd, &cursor, SEEK_SET);
+    if (err != ERR_SUCCESS)
+        return err;
+
+    if (pos != cursor)
+        return ERR_INVALID_OFFSET;
+    return ERR_SUCCESS;
+}
+
+void _short_name(const char* base, const char* ext, zar_filename filename)
+{
+    char* dest  = filename;
+    uint8_t len = 0;
+    while (len < ZAR_MAX_BASENAME && base[len]) {
+        dest[len] = base[len];
+        len++;
+    }
+
+    if(ext[0] == '\0') {
+        dest[len] = '\0';
+        return;
+    }
+
+    dest[len] = '.';
+    len++;
+    dest = &filename[len];
+    len  = 0;
+    while (len < ZAR_MAX_EXTENSION && ext[len]) {
+        dest[len] = ext[len];
+        len++;
+    }
+    dest[len] = '\0'; // null terminate
+}
+
+
+/** ZAR Library **/
+
+//
 zos_err_t zar_file_open(const char* path, zar_file_t* zar_file)
 {
     zos_err_t err = ERR_SUCCESS;
@@ -35,64 +88,17 @@ zos_err_t zar_file_open(const char* path, zar_file_t* zar_file)
 
     zar_file->fd = fd;
 
-    uint8_t i;
-    for (i = 0; i < ZAR_MAX_ENTRIES; i++) {
-        zar_file->entries[i] = NULL;
+    // read the header
+    uint16_t size = ZAR_FILE_HEADER_SIZE;
+    char header[ZAR_FILE_HEADER_SIZE];
+    err = read(fd, header, &size);
+    HANDLE_ERROR(err, size, ZAR_FILE_HEADER_SIZE);
+
+    if ((header[0] != 'Z') || (header[1] != 'A') | (header[2] != 'R')) {
+        return ERR_INVALID_FILESYSTEM;
     }
-
-    // read header
-    uint16_t size = 3;
-    err           = read(fd, &zar_file->header, &size);
-    HANDLE_ERROR(err, size, 3);
-
-    size = 1;
-    err  = read(fd, &zar_file->version, &size);
-    HANDLE_ERROR(err, size, 1);
-
-    size = 1;
-    err  = read(fd, &zar_file->file_count, &size);
-    HANDLE_ERROR(err, size, 1);
-
-    for (i = 0; i < zar_file->file_count; i++) {
-        size                    = 2;
-        zar_file_entry_t* entry = &ENTRIES[i];
-        entry->cursor           = 0;
-        err                     = read(fd, &entry->position, &size);
-        HANDLE_ERROR(err, size, 2);
-
-        size = 2;
-        err  = read(fd, &entry->size, &size);
-        HANDLE_ERROR(err, size, 2);
-
-        char base[ZAR_MAX_BASENAME + 1] = {0x00};
-        char ext[ZAR_MAX_EXTENSION + 1] = {0x00};
-
-        size = ZAR_MAX_BASENAME;
-        err  = read(fd, &base, &size);
-        HANDLE_ERROR(err, size, ZAR_MAX_BASENAME);
-
-        size = ZAR_MAX_EXTENSION;
-        err  = read(fd, &ext, &size);
-        HANDLE_ERROR(err, size, ZAR_MAX_EXTENSION);
-
-        // sprintf(entry->filename, "%s.%s", base, ext);
-        char* dest  = &entry->filename[0];
-        uint8_t len = 0;
-        while (len < ZAR_MAX_BASENAME && base[len]) {
-            dest[len] = base[len];
-            len++;
-        }
-        entry->filename[len] = '.';
-        len++;
-        dest = &entry->filename[len];
-        len  = 0;
-        while (len < ZAR_MAX_EXTENSION && ext[len]) {
-            dest[len] = ext[len];
-            len++;
-        }
-
-        zar_file->entries[i] = entry;
-    }
+    zar_file->version    = header[3];
+    zar_file->file_count = header[4];
 
     return err;
 }
@@ -153,33 +159,86 @@ zos_err_t zar_file_read(zar_file_t* zar_file, zar_file_entry_t* entry, uint8_t* 
     return err;
 }
 
-zar_file_entry_t* zar_file_get_from_index(zar_file_t* zar_file, uint8_t index)
+zos_err_t zar_file_entry_from_index(zar_file_t* zar_file, uint8_t index, zar_file_entry_t* entry)
 {
     if (index == ZAR_INVALID_NAME)
         return NULL;
     if (index >= zar_file->file_count)
         return NULL;
-    zar_file_entry_t* entry = zar_file->entries[index];
-    return entry;
+
+    uint16_t size;
+    zos_err_t err;
+
+    err = _seek_to_entry_index(zar_file, index);
+    if (err != ERR_SUCCESS)
+        return err;
+
+    // read position + size
+    size = sizeof(uint32_t);
+    err  = read(zar_file->fd, entry, &size);
+    HANDLE_ERROR(err, size, sizeof(uint32_t));
+
+    return ERR_SUCCESS;
 }
 
-zar_file_entry_t* zar_file_get_from_name(zar_file_t* zar_file, const char* name)
+zos_err_t zar_file_entry_from_name(zar_file_t* zar_file, const char* name, zar_file_entry_t* entry)
 {
-    uint8_t index = zar_file_get_index_of(zar_file, name);
+    uint8_t index = zar_file_entry_index_of_name(zar_file, name);
     if (index == ZAR_INVALID_NAME)
         return NULL;
-    return zar_file_get_from_index(zar_file, index);
+    return zar_file_entry_from_index(zar_file, index, entry);
 }
 
-uint8_t zar_file_get_index_of(zar_file_t* zar_file, const char* name)
+zos_err_t zar_file_entry_name_of_index(zar_file_t* zar_file, uint8_t index, zar_filename filename)
 {
-    if (zar_file == NULL)
-        return ZAR_INVALID_NAME;
+    if (index == ZAR_INVALID_NAME)
+        return NULL;
+    if (index >= zar_file->file_count)
+        return NULL;
+
+    uint16_t size;
+    zos_err_t err;
+
+    err = _seek_to_entry_index(zar_file, index);
+    if (err != ERR_SUCCESS)
+        return err;
+
+    // skip over the position/size
+    uint32_t offset = sizeof(uint32_t);
+    uint32_t pos    = offset;
+    err             = seek(zar_file->fd, &offset, SEEK_CUR);
+    if (err != ERR_SUCCESS)
+        return err;
+
+    char base[ZAR_MAX_BASENAME + 1] = {0x00};
+    char ext[ZAR_MAX_EXTENSION + 1] = {0x00};
+
+    size = ZAR_MAX_BASENAME;
+    err  = read(zar_file->fd, &base, &size);
+    HANDLE_ERROR(err, size, ZAR_MAX_BASENAME);
+
+    size = ZAR_MAX_EXTENSION;
+    err  = read(zar_file->fd, &ext, &size);
+    HANDLE_ERROR(err, size, ZAR_MAX_EXTENSION);
+
+    _short_name(base, ext, filename);
+
+    return ERR_SUCCESS;
+}
+
+uint8_t zar_file_entry_index_of_name(zar_file_t* zar_file, const char* name)
+{
+    zos_err_t err;
+    uint16_t size;
     uint8_t i;
+    zar_filename filename;
+
     for (i = 0; i < zar_file->file_count; i++) {
-        zar_file_entry_t* entry = zar_file->entries[i];
-        if (strcmp(name, entry->filename) == 0)
+        zar_file_entry_name_of_index(zar_file, i, filename);
+
+        if (strcmp(filename, name) == 0) {
             return i;
+        }
     }
     return ZAR_INVALID_NAME;
 }

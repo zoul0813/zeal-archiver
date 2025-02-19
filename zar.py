@@ -64,7 +64,7 @@ def archive(args):
   version = 0
 
   total_size = 0
-  pointer = 0
+  position = 0
 
   with open(args.output, "wb") as output:
     total_size += output.write(header.encode("ascii"))
@@ -73,22 +73,22 @@ def archive(args):
 
     zar_files = generate_zar_filenames(filenames)
 
-    pointer = total_size + (FILE_HEADER_SIZE * len(zar_files))
+    position = total_size + (FILE_HEADER_SIZE * len(zar_files))
     for src, short_name in zar_files.items():
       size = os.path.getsize(src)
       short = short_name.encode("ascii")
 
       # start position of file
-      total_size += output.write(struct.pack("<H", pointer))
+      total_size += output.write(struct.pack("<H", position))
       # size of the file
       total_size += output.write(struct.pack("<H", size))
       total_size += output.write(short)
 
       if args.verbose:
-        print(pointer, size, short)
+        print(position, size, short)
 
       # add the filesize to pointer
-      pointer += size
+      position += size
 
     for src, short_name in zar_files.items():
       with open(src, "rb") as input:
@@ -124,15 +124,15 @@ def extract(args):
       files[short] = (pointer,size)
 
     if args.verbose or args.list:
-      print("Filename".ljust(MAX_FILENAME + 1), "Pos".rjust(5), "Size".rjust(5))
-      print("".ljust(MAX_FILENAME + 1, "-"), "".rjust(5, "-"), "".rjust(5, "-"))
+      print("Filename".ljust(MAX_FILENAME + 1), "Size".rjust(6), "Pos".rjust(5))
+      print("".ljust(MAX_FILENAME + 1, "-"), "".rjust(6, "-"), "".rjust(5, "-"))
     for short,data in files.items():
       short_name = zar_to_os(short)
       pointer,size = data
       input.seek(pointer)
       data = input.read(size)
       if args.verbose or args.list:
-        print(short_name.ljust(MAX_FILENAME + 1), str(pointer).rjust(5), str(size).rjust(5))
+        print(short_name.ljust(MAX_FILENAME + 1), str(size).rjust(5) + "B", str(pointer).rjust(5))
       if not args.list:
         with open(os.path.join(args.output, short_name), "wb") as output:
           output.write(data)

@@ -51,3 +51,4 @@ zar.lib:
 	mkdir -p lib/
 	$(CC) $(CFLAGS) -o lib/ libsrc/zar.c
 	$(AR) -rc lib/zar.lib lib/zar.rel
+	ls -l lib/zar.lib
