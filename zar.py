@@ -6,7 +6,7 @@ import re
 import struct
 from pathlib import Path
 
-parser = argparse.ArgumentParser("gif2zeal")
+parser = argparse.ArgumentParser("zar")
 parser.add_argument("-i", "--input", help="Input Folder", required=True)
 parser.add_argument("-o", "--output", help="Output File", required=False)
 parser.add_argument("-v", "--verbose", help="Verbose output", action='store_true')
@@ -17,7 +17,7 @@ MAX_ENTRIES      = 255
 MAX_BASENAME     = 8
 MAX_EXTENSION    = 3
 MAX_FILENAME     = MAX_BASENAME + MAX_EXTENSION
-FILE_HEADER_SIZE = 4 + MAX_FILENAME + MAX_EXTENSION # uint16_t, uint16_t, char[8]
+FILE_HEADER_SIZE = 4 + MAX_FILENAME # uint16_t, uint16_t, char[MAX_FILE_NAME]
 
 def zar_to_os(filename):
   return filename[:MAX_BASENAME].rstrip('\x00') + "." + filename[MAX_BASENAME:].rstrip('\x00')
