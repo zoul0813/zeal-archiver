@@ -58,7 +58,7 @@ void _short_name(const char* base, const char* ext, zar_filename filename)
         len++;
     }
 
-    if(ext[0] == '\0') {
+    if (ext[0] == '\0') {
         dest[len] = '\0';
         return;
     }
@@ -74,6 +74,35 @@ void _short_name(const char* base, const char* ext, zar_filename filename)
     dest[len] = '\0'; // null terminate
 }
 
+zos_err_t safe_read(zos_dev_t dev, void* buf, uint16_t* size)
+{
+    uint8_t* ptr       = (uint8_t*) buf;
+    uint16_t remaining = *size;
+    zos_err_t err      = ERR_SUCCESS;
+
+    while (remaining > 0) {
+        uint16_t page_offset    = (uint16_t) ((uintptr_t) ptr & 0x3FFF);
+        uint16_t page_remaining = 0x4000 - page_offset;
+        uint16_t chunk_size     = (remaining < page_remaining) ? remaining : page_remaining;
+
+        uint16_t this_size = chunk_size;
+        err                = read(dev, ptr, &this_size);
+        if (err != ERR_SUCCESS) {
+            break;
+        }
+
+        ptr       += this_size;
+        remaining -= this_size;
+
+        if (this_size < chunk_size) {
+            // Read operation returned fewer bytes than requested, likely end of stream.
+            break;
+        }
+    }
+
+    *size -= remaining;
+    return err;
+}
 
 /** ZAR Library **/
 
@@ -150,7 +179,7 @@ zos_err_t zar_file_read(zar_file_t* zar_file, zar_file_entry_t* entry, uint8_t* 
     entry->cursor = (uint16_t) seek_to;
 
     // read size bytes into the buffer
-    read(zar_file->fd, buffer, size);
+    err = safe_read(zar_file->fd, buffer, size);
     if (err != ERR_SUCCESS)
         return err;
 
