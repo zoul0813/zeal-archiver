@@ -191,9 +191,9 @@ zos_err_t zar_file_read(zar_file_t* zar_file, zar_file_entry_t* entry, uint8_t* 
 zos_err_t zar_file_entry_from_index(zar_file_t* zar_file, uint8_t index, zar_file_entry_t* entry)
 {
     if (index == ZAR_INVALID_NAME)
-        return NULL;
+        return ERR_INVALID_PATH;
     if (index >= zar_file->file_count)
-        return NULL;
+        return ERR_INVALID_OFFSET;
 
     uint16_t size;
     zos_err_t err;
@@ -207,6 +207,8 @@ zos_err_t zar_file_entry_from_index(zar_file_t* zar_file, uint8_t index, zar_fil
     err  = read(zar_file->fd, entry, &size);
     HANDLE_ERROR(err, size, sizeof(uint32_t));
 
+    entry->cursor = 0;
+
     return ERR_SUCCESS;
 }
 
@@ -214,16 +216,16 @@ zos_err_t zar_file_entry_from_name(zar_file_t* zar_file, const char* name, zar_f
 {
     uint8_t index = zar_file_entry_index_of_name(zar_file, name);
     if (index == ZAR_INVALID_NAME)
-        return NULL;
+        return ERR_INVALID_PATH;
     return zar_file_entry_from_index(zar_file, index, entry);
 }
 
 zos_err_t zar_file_entry_name_of_index(zar_file_t* zar_file, uint8_t index, zar_filename filename)
 {
     if (index == ZAR_INVALID_NAME)
-        return NULL;
+        return ERR_INVALID_PATH;
     if (index >= zar_file->file_count)
-        return NULL;
+        return ERR_INVALID_OFFSET;
 
     uint16_t size;
     zos_err_t err;
