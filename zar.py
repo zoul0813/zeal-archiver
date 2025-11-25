@@ -177,15 +177,16 @@ def extract(args):
             files[short] = (pointer, size)
 
         if args.verbose or args.list:
-            print("Filename".ljust(MAX_FILENAME + 1), "Size".rjust(6), "Pos".rjust(5))
-            print("".ljust(MAX_FILENAME + 1, "-"), "".rjust(6, "-"), "".rjust(5, "-"))
-        for short, data in files.items():
+            print("Index".ljust(5), "Filename".ljust(MAX_FILENAME + 1), "Size".rjust(6), "Pos".rjust(5))
+            print("".ljust(5, "-"), "".ljust(MAX_FILENAME + 1, "-"), "".rjust(6, "-"), "".rjust(5, "-"))
+        for index, (short, data) in enumerate(files.items()):
             short_name = zar_to_os(short)
             pointer, size = data
             input.seek(pointer)
             data = input.read(size)
             if args.verbose or args.list:
                 print(
+                    str(index).rjust(5),
                     short_name.ljust(MAX_FILENAME + 1),
                     str(size).rjust(5) + "B",
                     str(pointer).rjust(5),
@@ -229,7 +230,7 @@ def create_c_header(args, inputFile):
                 macro = macro.upper()  # Convert to uppercase
                 macro = f"ZAR_{macro}"
 
-                output.write(f"#define {macro} {i}\t\t// at {pointer}, {size} bytes\n")
+                output.write(f"#define {macro.ljust(24)} {i}\t\t// at {pointer}, {size} bytes\n")
 
 
 def main():
