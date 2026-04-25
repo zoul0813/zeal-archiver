@@ -212,7 +212,7 @@ def create_c_header(args, inputFile):
             file_count = ord(input.read(1))
 
             output.write("/**\n")
-            output.write(" * ZAR File Header for enigma.zar\n")
+            output.write(" * ZAR File Header\n")
             output.write(f" * {header}{version}: {file_count} files, {size} bytes\n")
             output.write(" */\n\n")
 
