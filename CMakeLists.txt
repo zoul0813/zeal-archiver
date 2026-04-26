@@ -9,6 +9,9 @@ project(zar C)
 
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
+zos_use(coreutils)
+find_package(COREUTILS REQUIRED)
+
 add_library(zar STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/zar.c
 )
@@ -18,6 +21,7 @@ target_compile_options(zar PRIVATE
     --no-xinit-opt
 )
 
+target_link_libraries(zar PUBLIC core)
 target_include_directories(zar PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 set_target_properties(zar PROPERTIES
@@ -40,7 +44,7 @@ target_include_directories(zar_cli PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-zos_link_libraries(zar_cli PRIVATE zar)
+zos_link_libraries(zar_cli PRIVATE zar core)
 set_target_properties(zar_cli PROPERTIES
     OUTPUT_NAME zar
 )

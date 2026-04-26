@@ -1,9 +1,7 @@
-#include <stdio.h>
-#include <stdint.h>
-#include <stddef.h>
 #include <zos_sys.h>
 #include <zos_errors.h>
 #include <zos_vfs.h>
+#include <core.h>
 
 #include "zar.h"
 
@@ -13,26 +11,14 @@
 #define HANDLE_ERROR(error, size, expect)          \
     do {                                           \
         if (error != ERR_SUCCESS) {                \
-            printf("ERROR: line: %d\n", __LINE__); \
             return error;                          \
         }                                          \
         if (size != expect) {                      \
-            printf("ERROR: line: %d\n", __LINE__); \
             return ERR_ENTRY_CORRUPTED;            \
         }                                          \
     } while (0);
 
 /** INTERNALS **/
-
-//
-uint8_t strcmp(const uint8_t* str1, const uint8_t* str2)
-{
-    while (*str1 && (*str1 == *str2)) {
-        str1++;
-        str2++;
-    }
-    return *str1 - *str2; // Return difference of the first differing character
-}
 
 zos_err_t _seek_to_entry_index(zar_file_t* zar_file, uint8_t index)
 {
@@ -259,15 +245,13 @@ zos_err_t zar_file_entry_name_of_index(zar_file_t* zar_file, uint8_t index, zar_
 
 uint8_t zar_file_entry_index_of_name(zar_file_t* zar_file, const char* name)
 {
-    zos_err_t err;
-    uint16_t size;
     uint8_t i;
     zar_filename filename;
 
     for (i = 0; i < zar_file->file_count; i++) {
         zar_file_entry_name_of_index(zar_file, i, filename);
 
-        if (strcmp(filename, name) == 0) {
+        if (str_cmp(filename, name) == 0) {
             return i;
         }
     }

@@ -1,43 +1,6 @@
 #include <stdarg.h>
-#include <zos_vfs.h>
+#include <core.h>
 #include "stdutils.h"
-
-
-uint16_t strlen(const char* str)
-{
-    uint16_t length = 0;
-    while (str[length]) length++;
-    return length;
-}
-
-void* memset(void* ptr, uint8_t value, size_t size)
-{
-    uint8_t* p = ptr;
-    while (size--) {
-        *p++ = value;
-    }
-    return ptr;
-}
-
-void* memcpy(void* dst, const void* src, size_t size)
-{
-    uint8_t* d       = dst;
-    const uint8_t* s = src;
-    while (size--) *d++ = *s++;
-    return dst;
-}
-
-char* strchr(const char* str, uint8_t c)
-{
-    while (*str) {
-        if (*str == (char) c) {
-            return (char*) str; // Return pointer to the found character
-        }
-        str++;
-    }
-
-    return NULL; // Return NULL if character not found
-}
 
 char* strtok(char* str, const char* delim)
 {
@@ -49,7 +12,7 @@ char* strtok(char* str, const char* delim)
     }
 
     // Skip leading delimiters
-    while (*next_token && strchr(delim, *next_token)) {
+    while (*next_token && str_chr(delim, *next_token)) {
         next_token++;
     }
 
@@ -59,7 +22,7 @@ char* strtok(char* str, const char* delim)
     char* token_start = next_token; // Start of the token
 
     // Find the end of the token
-    while (*next_token && !strchr(delim, *next_token)) {
+    while (*next_token && !str_chr(delim, *next_token)) {
         next_token++;
     }
 
@@ -73,8 +36,7 @@ char* strtok(char* str, const char* delim)
     return token_start;
 }
 
-// Helper function to convert an integer to a string
-void itoa(int num, char* str, uint8_t base, char alpha) {
+static void format_itoa(int num, char* str, uint8_t base, char alpha) {
     int i = 0;
     int is_negative = 0;
 
@@ -144,7 +106,7 @@ void __fprintf(zos_dev_t dev, const char* format, va_list args) {
             switch (*format) {
                 case 's': {  // String
                     const char* str = va_arg(args, const char*);
-                    int len = strlen(str);
+                    int len = str_len(str);
                     int pad = (width > len) ? width - len : 0;
 
                     // Left-align if negative width, otherwise right-align
@@ -176,8 +138,8 @@ void __fprintf(zos_dev_t dev, const char* format, va_list args) {
                 case 'd': {  // Integer
                     int num = va_arg(args, int);
                     char num_str[20];
-                    itoa(num, num_str, base, alpha);  // Convert integer to string
-                    int len = strlen(num_str);
+                    format_itoa(num, num_str, base, alpha);
+                    int len = str_len(num_str);
                     int pad = (width > len) ? width - len : 0;
 
                     // Left-align if negative width, otherwise right-align
@@ -237,4 +199,3 @@ void fprintf(zos_dev_t dev, const char* format, ...) {
     __fprintf(dev, format, args);
     va_end(args);
 }
-

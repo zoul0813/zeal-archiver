@@ -3,6 +3,7 @@
 #include <zos_sys.h>
 #include <zos_vfs.h>
 #include <zos_video.h>
+#include <core.h>
 
 
 #include "zar.h"
@@ -58,8 +59,8 @@ void parse_arguments(int argc, char** argv)
 {
     // clear options
     options.flags = F_NONE;
-    memset(&options.input, 0, PATH_MAX);
-    memset(&options.output, 0, PATH_MAX);
+    mem_set(&options.input, 0, PATH_MAX);
+    mem_set(&options.output, 0, PATH_MAX);
 
     uint8_t i, l, index = 0;
     if (argc == 1) {
@@ -78,7 +79,7 @@ void parse_arguments(int argc, char** argv)
 
         if (tokens >= 1) {
             // process the first argument as flags
-            l = strlen(args[0]);
+            l = str_len(args[0]);
             for (i = 0; i < l; i++) {
                 char c = argv[0][i];
                 switch (c) {
@@ -94,14 +95,14 @@ void parse_arguments(int argc, char** argv)
         }
 
         if (tokens >= (1 + index)) {
-            l = strlen(args[0 + index]);
-            memcpy(options.input, args[0 + index], l);
+            l = str_len(args[0 + index]);
+            mem_cpy(options.input, args[0 + index], l);
         }
 
 
         if (tokens >= (2 + index)) {
-            l = strlen(args[1 + index]);
-            memcpy(options.output, args[1 + index], l);
+            l = str_len(args[1 + index]);
+            mem_cpy(options.output, args[1 + index], l);
             if (options.output[l - 1] != '/') {
                 options.output[l] = '/';
             }
