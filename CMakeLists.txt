@@ -44,8 +44,13 @@ target_include_directories(zar_cli PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-zos_link_libraries(zar_cli PRIVATE zar core)
+target_link_options(zar_cli PRIVATE
+    "SHELL:-k ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
+    "SHELL:-l zar.lib"
+)
+target_link_libraries(zar_cli PRIVATE core)
 set_target_properties(zar_cli PROPERTIES
     OUTPUT_NAME zar
 )
 ihx_to_bin(zar_cli "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/zar.bin")
+add_custom_target(bins DEPENDS zar_cli_bin)
