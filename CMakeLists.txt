@@ -13,7 +13,16 @@ zos_use(coreutils)
 find_package(COREUTILS REQUIRED)
 
 add_library(zar STATIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/zar.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_open.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_close.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_read.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_from_index.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_from_name.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_name_of_index.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_index_of_name.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/seek_to_entry_index.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/short_name.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/safe_read.c
 )
 
 target_compile_options(zar PRIVATE
@@ -48,9 +57,14 @@ target_link_options(zar_cli PRIVATE
     "SHELL:-k ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
     "SHELL:-l zar.lib"
 )
+add_dependencies(zar_cli zar)
 target_link_libraries(zar_cli PRIVATE core)
 set_target_properties(zar_cli PROPERTIES
     OUTPUT_NAME zar
 )
 ihx_to_bin(zar_cli "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/zar.bin")
+coreutils_add_post_build_artifacts(zar
+    TARGET zar_cli_bin
+    STRIP_BIN_EXTENSION ON
+)
 add_custom_target(bins DEPENDS zar_cli_bin)
