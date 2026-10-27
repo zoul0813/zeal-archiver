@@ -20,6 +20,7 @@ add_library(zar STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_from_name.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_name_of_index.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_index_of_name.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/find_entry.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/seek_to_entry_index.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/short_name.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/safe_read.c

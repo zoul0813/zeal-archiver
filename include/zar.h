@@ -62,6 +62,9 @@ zos_err_t zar_file_entry_from_index(zar_file_t* zar_file, uint8_t index, zar_fil
 
 /**
  * @brief Retrieves the file entry from a ZAR file by filename.
+ * Matches the stored zero-padded 8.3 name exactly, including case.
+ * Returns ERR_INVALID_PATH for a missing or overlong name, or the seek/read
+ * error (ERR_ENTRY_CORRUPTED for a short entry read).
  */
 zos_err_t zar_file_entry_from_name(zar_file_t* zar_file, const char* name, zar_file_entry_t *entry);
 
@@ -72,6 +75,8 @@ zos_err_t zar_file_entry_name_of_index(zar_file_t* zar_file, uint8_t index, zar_
 
 /**
  * @brief Retrieves the index of a file entry in a ZAR file by filename.
+ * Matches the stored zero-padded 8.3 name exactly, including case.
+ * Returns ZAR_INVALID_NAME if the name is missing, invalid, or cannot be read.
  */
 uint8_t zar_file_entry_index_of_name(zar_file_t* zar_file, const char* name);
 

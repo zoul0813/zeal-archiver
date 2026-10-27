@@ -18,6 +18,7 @@
     } while (0);
 
 zos_err_t _seek_to_entry_index(zar_file_t* zar_file, uint8_t index);
+zos_err_t _find_entry(zar_file_t* zar_file, const char* name, uint8_t* index, zar_file_entry_t* entry);
 void _short_name(const char* base, const char* ext, zar_filename filename);
 zos_err_t safe_read(zos_dev_t dev, void* buf, uint16_t* size);
 

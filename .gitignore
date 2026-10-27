@@ -1,5 +1,6 @@
 bin/
 build/
+__pycache__/
 debug/
 *.zip
 release/
