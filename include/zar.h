@@ -52,6 +52,11 @@ zos_err_t zar_file_close(zar_file_t* zar_file);
 
 /**
  * @brief Retrieves the contents of a file from a ZAR file entry.
+ * A zero cursor starts (or restarts) at entry->position. On return, *size is
+ * the number of bytes read; the cursor advances even on a partial-read error.
+ * EOF returns ERR_NO_MORE_ENTRIES. A short underlying read returns
+ * ERR_ENTRY_CORRUPTED. Cursors before the entry start and entry end offsets
+ * beyond UINT16_MAX return ERR_INVALID_OFFSET.
  */
 zos_err_t zar_file_read(zar_file_t* zar_file, zar_file_entry_t* entry, uint8_t* buffer, uint16_t* size);
 

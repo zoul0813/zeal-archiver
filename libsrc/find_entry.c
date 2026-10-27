@@ -6,22 +6,20 @@ zos_err_t _find_entry(zar_file_t* zar_file, const char* name, uint8_t* index, za
 {
     uint8_t packed[ZAR_MAX_FILENAME] = {0};
     uint8_t len = 0;
+    uint8_t limit = ZAR_MAX_BASENAME;
 
-    // Match the displayed 8.3 name exactly; never truncate or change case.
-    while (*name && *name != '.') {
-        if (len == ZAR_MAX_BASENAME)
-            return ERR_INVALID_PATH;
-        packed[len++] = *name++;
-    }
-    if (*name == '.') {
-        name++;
-        if (*name == '\0')
-            return ERR_INVALID_PATH;
-        len = ZAR_MAX_BASENAME;
-        while (*name) {
-            if (len == ZAR_MAX_FILENAME || *name == '.')
+    // Keep the basename and extension in their separate padded fields.
+    while (*name) {
+        char c = *name++;
+        if (c == '.') {
+            if (limit == ZAR_MAX_FILENAME || *name == '\0')
                 return ERR_INVALID_PATH;
-            packed[len++] = *name++;
+            len = ZAR_MAX_BASENAME;
+            limit = ZAR_MAX_FILENAME;
+        } else {
+            if (len == limit)
+                return ERR_INVALID_PATH;
+            packed[len++] = c;
         }
     }
 

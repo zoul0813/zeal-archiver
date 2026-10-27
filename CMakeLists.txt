@@ -27,6 +27,7 @@ add_library(zar STATIC
 )
 
 target_compile_options(zar PRIVATE
+    --opt-code-size
     --nostdlib
     --no-xinit-opt
 )

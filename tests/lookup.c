@@ -143,6 +143,24 @@ int main(void)
     assert(zar_file_entry_from_name(&archive, "HELLO.TXT", &entry) == ERR_INVALID_PATH);
     assert(seeks == 0 && reads == 0);
 
+    // Exercise every legal pair of basename/extension lengths for the parser.
+    archive.file_count = 1;
+    for (unsigned b = 0; b <= 8; b++) {
+        for (unsigned e = 0; e <= 3; e++) {
+            char base[9], ext[4];
+            zar_filename name;
+            memset(base, 'B', b);
+            base[b] = '\0';
+            memset(ext, 'E', e);
+            ext[e] = '\0';
+            snprintf(name, sizeof(name), "%s%s%s", base, e ? "." : "", ext);
+            record(0, base, ext);
+            reset_io();
+            assert(zar_file_entry_index_of_name(&archive, name) == 0);
+            assert(seeks == 1 && reads == 1);
+        }
+    }
+
     archive.file_count = 255;
     for (unsigned i = 0; i < 255; i++) {
         char base[9];
