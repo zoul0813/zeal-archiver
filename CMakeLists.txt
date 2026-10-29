@@ -15,13 +15,14 @@ find_package(COREUTILS REQUIRED)
 add_library(zar STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_open.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_close.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_read.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_read_at.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_seek.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_from_index.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_from_name.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_name_of_index.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_index_of_name.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/entry_read.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/entry_read_at.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/entry_seek.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/entry_from_index.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/entry_from_name.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/entry_load.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/entry_name_of_index.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/entry_index_of_name.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/find_entry.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/seek_to_entry_index.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/short_name.c

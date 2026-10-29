@@ -29,7 +29,7 @@ typedef struct {
         uint16_t position;
         uint16_t size;
         uint16_t cursor;
-} zar_file_entry_t;
+} zar_entry_t;
 
 /**
  * @brief Represents a ZAR file structure.
@@ -58,15 +58,15 @@ zos_err_t zar_file_close(zar_file_t* zar_file);
  * ERR_ENTRY_CORRUPTED. Cursors before the entry start and entry end offsets
  * beyond UINT16_MAX return ERR_INVALID_OFFSET.
  */
-zos_err_t zar_file_read(zar_file_t* zar_file, zar_file_entry_t* entry, void* buffer, uint16_t* size);
+zos_err_t zar_entry_read(zar_file_t* zar_file, zar_entry_t* entry, void* buffer, uint16_t* size);
 
 /**
  * @brief Reads from an entry-relative byte offset, advancing the entry cursor.
- * Uses zar_file_read() semantics, including ERR_NO_MORE_ENTRIES at or past EOF.
+ * Uses zar_entry_read() semantics, including ERR_NO_MORE_ENTRIES at or past EOF.
  * An offset whose absolute cursor exceeds UINT16_MAX returns ERR_INVALID_OFFSET,
  * sets *size to zero, and leaves the cursor unchanged.
  */
-zos_err_t zar_file_read_at(zar_file_t* zar_file, zar_file_entry_t* entry, uint16_t offset, void* buffer, uint16_t* size);
+zos_err_t zar_entry_read_at(zar_file_t* zar_file, zar_entry_t* entry, uint16_t offset, void* buffer, uint16_t* size);
 
 /**
  * @brief Sets the entry cursor to an entry-relative byte offset without I/O.
@@ -74,12 +74,12 @@ zos_err_t zar_file_read_at(zar_file_t* zar_file, zar_file_entry_t* entry, uint16
  * Offsets past the size or whose absolute cursor exceeds UINT16_MAX return
  * ERR_INVALID_OFFSET and leave the cursor unchanged.
  */
-zos_err_t zar_file_seek(zar_file_entry_t* entry, uint16_t offset);
+zos_err_t zar_entry_seek(zar_entry_t* entry, uint16_t offset);
 
 /**
  * @brief Retrieves the file entry from a ZAR file by index.
  */
-zos_err_t zar_file_entry_from_index(zar_file_t* zar_file, uint8_t index, zar_file_entry_t *entry);
+zos_err_t zar_entry_from_index(zar_file_t* zar_file, uint8_t index, zar_entry_t *entry);
 
 /**
  * @brief Retrieves the file entry from a ZAR file by filename.
@@ -87,18 +87,30 @@ zos_err_t zar_file_entry_from_index(zar_file_t* zar_file, uint8_t index, zar_fil
  * Returns ERR_INVALID_PATH for a missing or overlong name, or the seek/read
  * error (ERR_ENTRY_CORRUPTED for a short entry read).
  */
-zos_err_t zar_file_entry_from_name(zar_file_t* zar_file, const char* name, zar_file_entry_t *entry);
+zos_err_t zar_entry_from_name(zar_file_t* zar_file, const char* name, zar_entry_t *entry);
+
+/**
+ * @brief Looks up a named entry and reads its full contents into buffer.
+ * On input, *size is the buffer capacity; on return, it is the bytes read.
+ * Lookup errors and insufficient capacity leave *size zero and buffer untouched.
+ * Insufficient capacity returns ERR_NO_MORE_MEMORY. Read errors may leave
+ * partial data in buffer; a short read returns ERR_ENTRY_CORRUPTED.
+ * Empty entries return ERR_NO_MORE_ENTRIES, as with zar_entry_read().
+ */
+zos_err_t zar_entry_load(zar_file_t* zar_file, const char* name, void* buffer, uint16_t* size);
 
 /**
  * @brief Retrieves the name of a file entry in a ZAR file by index.
  */
-zos_err_t zar_file_entry_name_of_index(zar_file_t* zar_file, uint8_t index, zar_filename filename);
+zos_err_t zar_entry_name_of_index(zar_file_t* zar_file, uint8_t index, zar_filename filename);
 
 /**
  * @brief Retrieves the index of a file entry in a ZAR file by filename.
  * Matches the stored zero-padded 8.3 name exactly, including case.
  * Returns ZAR_INVALID_NAME if the name is missing, invalid, or cannot be read.
  */
-uint8_t zar_file_entry_index_of_name(zar_file_t* zar_file, const char* name);
+uint8_t zar_entry_index_of_name(zar_file_t* zar_file, const char* name);
+
+#include "deprecated.h"
 
 #endif // ZAR_H

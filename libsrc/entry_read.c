@@ -1,6 +1,6 @@
 #include "zar_internal.h"
 
-zos_err_t zar_file_read(zar_file_t* zar_file, zar_file_entry_t* entry, void* buffer, uint16_t* size)
+zos_err_t zar_entry_read(zar_file_t* zar_file, zar_entry_t* entry, void* buffer, uint16_t* size)
 {
     uint16_t requested = *size;
     uint16_t cursor = entry->cursor ? entry->cursor : entry->position;

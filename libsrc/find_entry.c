@@ -2,7 +2,7 @@
 #include <core.h>
 #include <stddef.h>
 
-zos_err_t _find_entry(zar_file_t* zar_file, const char* name, uint8_t* index, zar_file_entry_t* entry)
+zos_err_t _find_entry(zar_file_t* zar_file, const char* name, uint8_t* index, zar_entry_t* entry)
 {
     uint8_t packed[ZAR_MAX_FILENAME] = {0};
     uint8_t len = 0;

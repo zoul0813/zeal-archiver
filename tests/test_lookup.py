@@ -11,12 +11,16 @@ import unittest
 class LookupTest(unittest.TestCase):
     def test_lookup(self):
         self.run_case("lookup", [
-            "find_entry", "file_entry_index_of_name", "file_entry_from_name",
-            "file_entry_name_of_index", "short_name",
+            "find_entry", "entry_index_of_name", "entry_from_name",
+            "entry_name_of_index", "short_name",
+            "entry_from_index", "seek_to_entry_index",
         ])
 
     def test_file_io(self):
-        self.run_case("file_io", ["file_open", "file_read", "file_read_at", "file_seek", "safe_read"])
+        self.run_case("file_io", [
+            "file_open", "entry_read", "entry_read_at", "entry_seek", "safe_read",
+            "entry_load", "entry_from_name", "find_entry",
+        ])
 
     def run_case(self, case, sources):
         root = Path(__file__).resolve().parents[1]
@@ -26,7 +30,8 @@ class LookupTest(unittest.TestCase):
 #pragma once
 typedef enum {
     ERR_SUCCESS, ERR_FAILURE, ERR_INVALID_PATH, ERR_INVALID_OFFSET,
-    ERR_ENTRY_CORRUPTED, ERR_INVALID_FILESYSTEM, ERR_NO_MORE_ENTRIES
+    ERR_ENTRY_CORRUPTED, ERR_INVALID_FILESYSTEM, ERR_NO_MORE_ENTRIES,
+    ERR_NO_MORE_MEMORY
 } zos_err_t;
 """)
             (tmp / "zos_vfs.h").write_text("""

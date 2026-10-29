@@ -1,6 +1,6 @@
 #include "zar_internal.h"
 
-zos_err_t zar_file_entry_name_of_index(zar_file_t* zar_file, uint8_t index, zar_filename filename)
+zos_err_t zar_entry_name_of_index(zar_file_t* zar_file, uint8_t index, zar_filename filename)
 {
     if (index == ZAR_INVALID_NAME)
         return ERR_INVALID_PATH;

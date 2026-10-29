@@ -121,15 +121,15 @@ zos_err_t list_files(zar_file_t* zar_file)
     printf("------------  ------ -----\n");
 
     uint8_t i;
-    zar_file_entry_t entry;
+    zar_entry_t entry;
     zar_filename filename;
     for (i = 0; i < zar_file->file_count; i++) {
-        err = zar_file_entry_from_index(zar_file, i, &entry);
+        err = zar_entry_from_index(zar_file, i, &entry);
         if (err != ERR_SUCCESS) {
             printf("\nFailed to get entry at index %d, %d [%02x]\n", i, err, err);
             return err;
         }
-        err = zar_file_entry_name_of_index(zar_file, i, filename);
+        err = zar_entry_name_of_index(zar_file, i, filename);
         if(err != ERR_SUCCESS) {
             printf("\nFailed to get entry name at index %d, %d [%02x]\n", i, err, err);
             exit(err);
@@ -177,16 +177,16 @@ zos_err_t extract_files(zar_file_t* zar_file)
     chdir(options.output);
 
     uint8_t i;
-    zar_file_entry_t entry;
+    zar_entry_t entry;
     zar_filename filename;
     for (i = 0; i < zar_file->file_count; i++) {
-        err = zar_file_entry_from_index(zar_file, i, &entry);
+        err = zar_entry_from_index(zar_file, i, &entry);
         if (err != ERR_SUCCESS) {
             printf("\nFailed to get entry at index %d, %d [%02x]\n", i, err, err);
             exit(err);
         }
 
-        err = zar_file_entry_name_of_index(zar_file, i, filename);
+        err = zar_entry_name_of_index(zar_file, i, filename);
         if(err != ERR_SUCCESS) {
             printf("\nFailed to get entry name at index %d, %d [%02x]\n", i, err, err);
             exit(err);
@@ -205,7 +205,7 @@ zos_err_t extract_files(zar_file_t* zar_file)
         // read 1k at a time
         uint16_t size = sizeof(buffer);
         do {
-            err = zar_file_read(zar_file, &entry, buffer, &size);
+            err = zar_entry_read(zar_file, &entry, buffer, &size);
             if (size > 0) {
                 if (err != ERR_SUCCESS) {
                     printf("Failed to read %d bytes from %s for %s\n", size, options.input, filename);

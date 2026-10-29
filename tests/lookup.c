@@ -62,6 +62,14 @@ static void record(unsigned i, const char* base, const char* ext)
 
 int main(void)
 {
+    // zar.h must expose legacy names, including when taking function addresses.
+    assert(zar_file_entry_from_name == zar_entry_from_name);
+    assert(zar_file_entry_from_index == zar_entry_from_index);
+    assert(zar_file_entry_name_of_index == zar_entry_name_of_index);
+    assert(zar_file_entry_index_of_name == zar_entry_index_of_name);
+    zar_file_entry_t legacy_entry = {1, 2, 3};
+    zar_entry_t* entry_alias = &legacy_entry;
+    assert(entry_alias->position == 1 && entry_alias->size == 2 && entry_alias->cursor == 3);
     const char* names[] = {"HELLO.TXT", "README", "abcdefgh.xyz", ".TXT", ""};
     record(0, "HELLO", "TXT");
     record(1, "README", "");
@@ -71,18 +79,18 @@ int main(void)
 
     for (uint8_t i = 0; i < 5; i++) {
         reset_io();
-        assert(zar_file_entry_index_of_name(&archive, names[i]) == i);
+        assert(zar_entry_index_of_name(&archive, names[i]) == i);
         assert(seeks == 1 && reads == (unsigned) i + 1);
 
-        zar_file_entry_t entry = {1, 2, 3};
+        zar_entry_t entry = {1, 2, 3};
         reset_io();
-        assert(zar_file_entry_from_name(&archive, names[i], &entry) == ERR_SUCCESS);
+        assert(zar_entry_from_name(&archive, names[i], &entry) == ERR_SUCCESS);
         assert(entry.position == 0xf123 && entry.size == 0xabcd && entry.cursor == 0);
         assert(seeks == 1 && reads == (unsigned) i + 1);
 
         zar_filename filename;
         reset_io();
-        assert(zar_file_entry_name_of_index(&archive, i, filename) == ERR_SUCCESS);
+        assert(zar_entry_name_of_index(&archive, i, filename) == ERR_SUCCESS);
         assert(strcmp(filename, names[i]) == 0);
         assert(seeks == 1 && reads == 1);
     }
@@ -92,55 +100,55 @@ int main(void)
         "abcdefghi.xyz", "abcdefgh.xyzz", "HELLO.TXT.more", "HELLO..TXT",
     };
     for (unsigned i = 0; i < sizeof(missing) / sizeof(*missing); i++) {
-        zar_file_entry_t entry = {1, 2, 3};
+        zar_entry_t entry = {1, 2, 3};
         reset_io();
-        assert(zar_file_entry_index_of_name(&archive, missing[i]) == ZAR_INVALID_NAME);
-        assert(zar_file_entry_from_name(&archive, missing[i], &entry) == ERR_INVALID_PATH);
+        assert(zar_entry_index_of_name(&archive, missing[i]) == ZAR_INVALID_NAME);
+        assert(zar_entry_from_name(&archive, missing[i], &entry) == ERR_INVALID_PATH);
         assert(entry.position == 1 && entry.size == 2 && entry.cursor == 3);
     }
 
-    zar_file_entry_t entry = {1, 2, 3};
+    zar_entry_t entry = {1, 2, 3};
     zar_filename filename;
     reset_io();
     fail_seek = 1;
-    assert(zar_file_entry_from_name(&archive, "HELLO.TXT", &entry) == ERR_FAILURE);
-    assert(zar_file_entry_index_of_name(&archive, "HELLO.TXT") == ZAR_INVALID_NAME);
-    assert(zar_file_entry_name_of_index(&archive, 0, filename) == ERR_FAILURE);
+    assert(zar_entry_from_name(&archive, "HELLO.TXT", &entry) == ERR_FAILURE);
+    assert(zar_entry_index_of_name(&archive, "HELLO.TXT") == ZAR_INVALID_NAME);
+    assert(zar_entry_name_of_index(&archive, 0, filename) == ERR_FAILURE);
     assert(reads == 0);
 
     reset_io();
     wrong_seek = 1;
-    assert(zar_file_entry_from_name(&archive, "HELLO.TXT", &entry) == ERR_INVALID_OFFSET);
-    assert(zar_file_entry_name_of_index(&archive, 0, filename) == ERR_INVALID_OFFSET);
+    assert(zar_entry_from_name(&archive, "HELLO.TXT", &entry) == ERR_INVALID_OFFSET);
+    assert(zar_entry_name_of_index(&archive, 0, filename) == ERR_INVALID_OFFSET);
     assert(reads == 0);
 
     reset_io();
     fail_read = 2;
-    assert(zar_file_entry_from_name(&archive, "README", &entry) == ERR_FAILURE);
+    assert(zar_entry_from_name(&archive, "README", &entry) == ERR_FAILURE);
     assert(seeks == 1 && reads == 2);
     reset_io();
     fail_read = 1;
-    assert(zar_file_entry_index_of_name(&archive, "HELLO.TXT") == ZAR_INVALID_NAME);
+    assert(zar_entry_index_of_name(&archive, "HELLO.TXT") == ZAR_INVALID_NAME);
     reset_io();
     fail_read = 1;
-    assert(zar_file_entry_name_of_index(&archive, 0, filename) == ERR_FAILURE);
+    assert(zar_entry_name_of_index(&archive, 0, filename) == ERR_FAILURE);
 
     reset_io();
     short_read = 1;
-    assert(zar_file_entry_from_name(&archive, "HELLO.TXT", &entry) == ERR_ENTRY_CORRUPTED);
-    assert(zar_file_entry_index_of_name(&archive, "HELLO.TXT") == ZAR_INVALID_NAME);
-    assert(zar_file_entry_name_of_index(&archive, 0, filename) == ERR_ENTRY_CORRUPTED);
+    assert(zar_entry_from_name(&archive, "HELLO.TXT", &entry) == ERR_ENTRY_CORRUPTED);
+    assert(zar_entry_index_of_name(&archive, "HELLO.TXT") == ZAR_INVALID_NAME);
+    assert(zar_entry_name_of_index(&archive, 0, filename) == ERR_ENTRY_CORRUPTED);
     assert(entry.position == 1 && entry.size == 2 && entry.cursor == 3);
 
     reset_io();
-    assert(zar_file_entry_name_of_index(&archive, ZAR_INVALID_NAME, filename) == ERR_INVALID_PATH);
-    assert(zar_file_entry_name_of_index(&archive, 5, filename) == ERR_INVALID_OFFSET);
+    assert(zar_entry_name_of_index(&archive, ZAR_INVALID_NAME, filename) == ERR_INVALID_PATH);
+    assert(zar_entry_name_of_index(&archive, 5, filename) == ERR_INVALID_OFFSET);
     assert(seeks == 0 && reads == 0);
 
     archive.file_count = 0;
     reset_io();
-    assert(zar_file_entry_index_of_name(&archive, "HELLO.TXT") == ZAR_INVALID_NAME);
-    assert(zar_file_entry_from_name(&archive, "HELLO.TXT", &entry) == ERR_INVALID_PATH);
+    assert(zar_entry_index_of_name(&archive, "HELLO.TXT") == ZAR_INVALID_NAME);
+    assert(zar_entry_from_name(&archive, "HELLO.TXT", &entry) == ERR_INVALID_PATH);
     assert(seeks == 0 && reads == 0);
 
     // Exercise every legal pair of basename/extension lengths for the parser.
@@ -156,7 +164,7 @@ int main(void)
             snprintf(name, sizeof(name), "%s%s%s", base, e ? "." : "", ext);
             record(0, base, ext);
             reset_io();
-            assert(zar_file_entry_index_of_name(&archive, name) == 0);
+            assert(zar_entry_index_of_name(&archive, name) == 0);
             assert(seeks == 1 && reads == 1);
         }
     }
@@ -168,10 +176,10 @@ int main(void)
         record(i, base, "BIN");
     }
     reset_io();
-    assert(zar_file_entry_index_of_name(&archive, "F0000254.BIN") == 254);
+    assert(zar_entry_index_of_name(&archive, "F0000254.BIN") == 254);
     assert(seeks == 1 && reads == 255);
     reset_io();
-    assert(zar_file_entry_index_of_name(&archive, "MISSING.BIN") == ZAR_INVALID_NAME);
+    assert(zar_entry_index_of_name(&archive, "MISSING.BIN") == ZAR_INVALID_NAME);
     assert(seeks == 1 && reads == 255);
     puts("Lookup, listing, syscall counts, error handling, and 255-entry scan passed.");
     return 0;
