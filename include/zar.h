@@ -58,7 +58,23 @@ zos_err_t zar_file_close(zar_file_t* zar_file);
  * ERR_ENTRY_CORRUPTED. Cursors before the entry start and entry end offsets
  * beyond UINT16_MAX return ERR_INVALID_OFFSET.
  */
-zos_err_t zar_file_read(zar_file_t* zar_file, zar_file_entry_t* entry, uint8_t* buffer, uint16_t* size);
+zos_err_t zar_file_read(zar_file_t* zar_file, zar_file_entry_t* entry, void* buffer, uint16_t* size);
+
+/**
+ * @brief Reads from an entry-relative byte offset, advancing the entry cursor.
+ * Uses zar_file_read() semantics, including ERR_NO_MORE_ENTRIES at or past EOF.
+ * An offset whose absolute cursor exceeds UINT16_MAX returns ERR_INVALID_OFFSET,
+ * sets *size to zero, and leaves the cursor unchanged.
+ */
+zos_err_t zar_file_read_at(zar_file_t* zar_file, zar_file_entry_t* entry, uint16_t offset, void* buffer, uint16_t* size);
+
+/**
+ * @brief Sets the entry cursor to an entry-relative byte offset without I/O.
+ * Seeking to entry->size is allowed; the next read returns ERR_NO_MORE_ENTRIES.
+ * Offsets past the size or whose absolute cursor exceeds UINT16_MAX return
+ * ERR_INVALID_OFFSET and leave the cursor unchanged.
+ */
+zos_err_t zar_file_seek(zar_file_entry_t* entry, uint16_t offset);
 
 /**
  * @brief Retrieves the file entry from a ZAR file by index.

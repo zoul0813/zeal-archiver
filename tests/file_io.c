@@ -210,10 +210,61 @@ static void test_read(void)
     assert(reads == 2 && memcmp(buffer, data + 100, size) == 0);
 }
 
+static void test_read_at_and_seek(void)
+{
+    zar_file_t archive = {3, 0, 1};
+    zar_file_entry_t entry = {100, 100, 0};
+    struct { uint16_t value; } record;
+    uint16_t size;
+
+    reset_io();
+    size = sizeof(record);
+    assert(zar_file_read_at(&archive, &entry, 10, &record, &size) == ERR_SUCCESS);
+    assert(size == sizeof(record) && entry.cursor == 110 + sizeof(record));
+    assert(memcmp(&record, data + 110, size) == 0);
+    size = sizeof(record);
+    assert(zar_file_read(&archive, &entry, &record, &size) == ERR_SUCCESS);
+    assert(memcmp(&record, data + 110 + sizeof(record), size) == 0);
+
+    reset_io();
+    assert(zar_file_seek(&entry, 0) == ERR_SUCCESS && entry.cursor == 100);
+    assert(zar_file_seek(&entry, 25) == ERR_SUCCESS && entry.cursor == 125);
+    assert(zar_file_seek(&entry, 100) == ERR_SUCCESS && entry.cursor == 200);
+    assert(zar_file_seek(&entry, 101) == ERR_INVALID_OFFSET && entry.cursor == 200);
+    size = 1;
+    assert(zar_file_read(&archive, &entry, &record, &size) == ERR_NO_MORE_ENTRIES);
+    assert(size == 0 && seeks == 0 && reads == 0);
+    for (uint16_t offset = 100; offset <= 101; offset++) {
+        size = 1;
+        assert(zar_file_read_at(&archive, &entry, offset, &record, &size) == ERR_NO_MORE_ENTRIES);
+        assert(size == 0 && entry.cursor == 100 + offset && seeks == 0 && reads == 0);
+    }
+    size = sizeof(record);
+    assert(zar_file_read_at(&archive, &entry, 99, &record, &size) == ERR_SUCCESS);
+    assert(size == 1 && entry.cursor == 200);
+
+    reset_io();
+    entry = (zar_file_entry_t) {65530, 5, 65531};
+    assert(zar_file_seek(&entry, 5) == ERR_SUCCESS && entry.cursor == UINT16_MAX);
+    for (uint16_t offset = 6; offset <= 7; offset++) {
+        size = 1; // Both zero and nonzero wrapped cursors must be rejected.
+        assert(zar_file_read_at(&archive, &entry, offset, &record, &size) == ERR_INVALID_OFFSET);
+        assert(size == 0 && entry.cursor == UINT16_MAX && seeks == 0 && reads == 0);
+        entry.size = 10;
+        assert(zar_file_seek(&entry, offset) == ERR_INVALID_OFFSET && entry.cursor == UINT16_MAX);
+    }
+    entry = (zar_file_entry_t) {100, 0, 0};
+    assert(zar_file_seek(&entry, 0) == ERR_SUCCESS && entry.cursor == 100);
+    size = 1;
+    assert(zar_file_read_at(&archive, &entry, 0, &record, &size) == ERR_NO_MORE_ENTRIES);
+    assert(size == 0 && reads == 0 && seeks == 0);
+}
+
 int main(void)
 {
     test_open();
     test_read();
+    test_read_at_and_seek();
     puts("Open cleanup, bounded reads, cursor limits, truncation, and partial I/O passed.");
     return 0;
 }

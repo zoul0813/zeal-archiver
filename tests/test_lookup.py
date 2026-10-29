@@ -16,7 +16,7 @@ class LookupTest(unittest.TestCase):
         ])
 
     def test_file_io(self):
-        self.run_case("file_io", ["file_open", "file_read", "safe_read"])
+        self.run_case("file_io", ["file_open", "file_read", "file_read_at", "file_seek", "safe_read"])
 
     def run_case(self, case, sources):
         root = Path(__file__).resolve().parents[1]

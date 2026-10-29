@@ -16,6 +16,8 @@ add_library(zar STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_open.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_close.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_read.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_read_at.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_seek.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_from_index.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_from_name.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libsrc/file_entry_name_of_index.c
